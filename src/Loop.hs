@@ -4,9 +4,9 @@ module Loop (
   loop
 ) where
 
-import "GLFW-b" Graphics.UI.GLFW as GLFW
+import "GLFW-b" Graphics.UI.GLFW
 import Control.Category
-import Data.Label as L
+import Data.Label as L hiding (modify)
 import Data.Label.Monadic as St
 import Data.Maybe (fromJust)
 import Control.Monad (when, void, filterM, forM_)
@@ -19,90 +19,81 @@ import FRP.Elerea.Simple
 import World
 import Render
 import Util
+import Bindings
 
-loop :: Network -> WConf -> GLFW.Window -> Game ()
-loop network@(smp, snk) conf window
-  = unlessM (gets stopped)
+loop :: Network -> Game ()
+loop network@(smp, snk)
+  = unlessM (isStopped)
     <| do
+      io <| threadDelay 10000
+
+      conf <- gets wconf
 
       -- process input
-      io <| readInput network conf window
+      io <| readInput network conf
 
       -- execute actions
-      actions <- io smp >>= sequence
+      io smp >>= sequence
+
+      -- pause if necessary
+      whenM (isStatus Paused) reLoop
 
       -- debug
       io <| putStrLn "Squares alives"
       gets squares >>= io <. print <. alives
 
       -- render Frame
-      renderFrame conf window
+      renderFrame
 
       -- loop again
-      io <| threadDelay 10000
-      loop network conf window
+      reLoop
+
+      where
+        reLoop = loop network
 
 -- Input computing
 
-type KeyBindings = M.Map Key (Game ())
-keyBindings :: KeyBindings
-keyBindings = M.fromList
-  [
-    (Key'Escape,  puts stopped True)
-  ]
-
-type MouseBindings = M.Map MouseButton (Game ())
-mouseBindings :: WConf -> (Double, Double) -> MouseBindings
-mouseBindings conf click = M.fromList
-  [
-    (MouseButton'1,  squareClick click)
-  ]
-  where
-    size = get squareSize conf
-
-    squareClick :: (Double, Double) -> Game ()
-    squareClick input =
-      -- (retrieveSquare <|
-      --   getSquareCoord input size
-      -- ) >>= updateSquare
-
-      io <| print <| getSquareCoord input size
-
-data InputSource = MouseS MouseButton | KeyboardS Key
-
-isPressed :: GLFW.Window -> InputSource -> IO Bool
-isPressed window (KeyboardS key) =
+isInputOn :: Window -> InputSource -> IO Bool
+isInputOn window (KeyboardS key) =
   getKey window key
     $>> \case
       KeyState'Pressed    -> True
       KeyState'Repeating -> True
       _                          -> False
-isPressed window (MouseS button) =
+isInputOn window (MouseS button) =
   getMouseButton window button
     $>> \case
       MouseButtonState'Pressed -> True
       _                                    -> False
 
 
-readInput :: Network -> WConf -> GLFW.Window -> IO ()
-readInput network@(smp, snk) conf window
+readInput :: Network -> WConf  -> IO ()
+readInput network@(smp, snk) conf
   = do
+    let win = get window conf
+    let status = get runStatus conf
+    let b = get bindings conf
+
     pollEvents
 
-    -- keyboard
-    keysPressed <- filterM (isPressed window . KeyboardS)
-      <| M.keys keyBindings
+    inputs <- filterM (
+      \(i, s) ->
+        isInputOn win i
+        $>> (\b -> b && case s of
+          (Just s)  -> (s == status)
+          Nothing -> True)
+      ) <| M.keys b
 
-    forM_ keysPressed
+    forM_ inputs
       <| \k -> snk <. fromJust
-      <| M.lookup k keyBindings
-
-    -- mouse
-    buttonsPressed <- filterM (isPressed window . MouseS)
-      <| [MouseButton'1]
-
-    curPos <- getCursorPos window
-
-    forM_ buttonsPressed
-      <| \b -> snk <. fromJust
-      <| M.lookup b (mouseBindings conf curPos)
+      <| M.lookup k b
+    --
+    -- -- mouse
+    -- buttonsPressed <- filterM (isPressed win . MouseS)
+    --   <| [MouseButton'1]
+    --
+    -- curPos <- getCursorPos win
+    --
+    -- forM_ buttonsPressed
+    --   <| \b -> snk <. fromJust
+    --   <| M.lookup b (mouseBindings conf curPos)

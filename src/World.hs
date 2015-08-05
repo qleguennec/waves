@@ -1,17 +1,28 @@
 module World where
 
+import "GLFW-b" Graphics.UI.GLFW as GLFW (Window)
 import Prelude hiding ((.), id)
-import Control.Monad.State hiding (get, modify)
+import Control.Monad.State hiding (get, modify, gets)
 import Control.Category
 import Control.Applicative
 import Graphics.Gloss.Rendering as Gloss (State)
 import Data.List (find, delete, insert)
 import Data.Label as L
 import Data.Label.Monadic as St
+import qualified Data.Map as M
+import "GLFW-b" Graphics.UI.GLFW as GLFW
 import Flow
 
 import Util
 
+-- custom types
+type Game a = StateT World IO a
+type Network = (IO [Game ()], Game () -> IO ())
+data InputSource = KeyboardS Key | MouseS MouseButton
+  deriving (Ord, Eq)
+type Bindings = M.Map (InputSource, Maybe (RunStatus)) (Game ())
+
+-- data
 data Square = Square {
   _x :: Int
   , _y :: Int
@@ -22,18 +33,24 @@ data Player = Player {
   _pos :: Int
 } deriving Eq
 
+data RunStatus = Running | Paused | Stopped
+  deriving (Eq, Show, Ord)
+
 data World = World {
-  _stopped :: Bool
-  , _state     :: Gloss.State
+  _wconf :: WConf
   , _squares :: [Square]
 }
 
 data WConf = WConf {
-  _width :: Int
+  _window :: Window
+  , _state     :: Gloss.State
+  , _bindings :: Bindings
+  , _runStatus :: RunStatus
+  , _width :: Int
   , _height :: Int
   , _title :: String
   , _squareSize :: Int
-} deriving Eq
+}
 
 mkLabels [''Square, ''Player, ''World, ''WConf]
 (fstL, sndL) = $(getLabel ''(,))
@@ -65,15 +82,11 @@ coordFloat = point $
   (,) <$> fstL >- (float . x)
       <*> sndL >- (float . y)
 
--- custom types
-type Game a = StateT World IO a
-type Network = (IO [Game ()], Game () -> IO ())
-
 -- actions
 getSquareCoord :: (Double, Double) -> Int -> (Int, Int)
 getSquareCoord (a, b) squaresize =
-  ( (floor a `div` squaresize) * squaresize
-  , (floor b `div` squaresize) * squaresize
+  ( floor a `div` squaresize
+  , floor b `div` squaresize
   )
 
 retrieveSquare :: (Int, Int) -> Game (Maybe Square)
@@ -88,3 +101,20 @@ updateSquare (Just s)  = do
 
 alives :: [Square] -> [Square]
 alives = filter (get alive)
+
+-- Run status control
+isStatus :: RunStatus -> Game Bool
+isStatus s = gets (runStatus . wconf) $>> (== s)
+
+isPaused, isRunning, isStopped :: Game Bool
+isPaused  = isStatus Paused
+isRunning = isStatus Running
+isStopped = isStatus Stopped
+
+updateStatus :: RunStatus -> Game ()
+updateStatus s = puts (runStatus . wconf) s
+
+pause, run, stop :: Game ()
+pause = updateStatus Paused
+run = updateStatus Running
+stop = updateStatus Stopped

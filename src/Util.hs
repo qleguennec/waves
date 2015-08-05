@@ -1,7 +1,9 @@
 module Util where
 
-import Control.Monad.State (liftIO, MonadIO)
-import Control.Applicative
+import           Control.Applicative
+import           Control.Arrow       ((***))
+import           Control.Monad       (join)
+import           Control.Monad.State (MonadIO, liftIO)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM a f g = do
@@ -28,3 +30,6 @@ toFloat = fromIntegral
 
 toInt :: Float -> Int
 toInt = floor
+
+both :: (a -> b) -> (a, a) -> (b, b)
+both = join (***)

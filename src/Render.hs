@@ -13,21 +13,23 @@ import Flow
 import World
 import Util
 
-renderFrame :: WConf -> GLFW.Window -> Game ()
-renderFrame conf window = do
-  glossState <- gets state
+renderFrame :: Game ()
+renderFrame = do
+  glossState <- gets (state . wconf)
+  size <- gets (float . squareSize . wconf)
+  win <- gets (window . wconf)
   picture <- Pictures
     <$> gets squares
-    $>> map (\square -> let c = get coordFloat square
+    $>> map (\square ->
+      let c = get coordFloat square |> both (*size)
       in Pictures
       [
-        fill square <| Polygon (path c s)
-        , border square <| Line (path c s)
+        fill square <| Polygon (path c size)
+        , border square <| Line (path c size)
       ])
   io <! displayPicture (640, 480) background glossState 1.0 picture
-  io <! swapBuffers window
+  io <! swapBuffers win
   where
-    s = get (float . squareSize) conf
     path (a, b) s = [(a, b), (a+s, b), (a+s, b-s),  (a, b-s)]
 
 background :: Color
