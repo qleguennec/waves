@@ -7,7 +7,7 @@ module Bindings (
 import "GLFW-b" Graphics.UI.GLFW
 import Data.Label as L hiding (modify)
 import Data.Label.Monadic as St
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import Control.Category
 import Prelude hiding ((.), id)
 import Flow
@@ -27,6 +27,10 @@ defaultBindings = M.fromList
       (Just Running, pause)
       , (Just Paused, run)
     ])
+
+    , (KeyboardS Key'Pad0, [
+      (Nothing, debug)
+    ])
   ]
   ++
   [
@@ -37,12 +41,12 @@ defaultBindings = M.fromList
   where
     squareClick :: Game ()
     squareClick = do
-      curPos <- gets (window . wconf) >>= io <. getCursorPos
+      win <- gets (window . wconf)
+      winSize <- gets (wCoord . wconf)
+      curPos <- (io <. getCursorPos) win
       squaresize <- gets (squareSize . wconf)
-      let c = getSquareCoord curPos squaresize
-      io <| print c
+      let c = getSquareCoord curPos winSize squaresize
       retrieveSquare c >>= updateSquare
-
 
 
 merge :: [(a, [(b, c)])] -> [((a, b), c)]

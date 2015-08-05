@@ -3,7 +3,8 @@ module Util where
 import           Control.Applicative
 import           Control.Arrow       ((***))
 import           Control.Monad       (join)
-import           Control.Monad.State (MonadIO, liftIO)
+import Control.Monad.State.Strict (MonadIO, liftIO)
+import Control.Concurrent (threadDelay)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM a f g = do
@@ -33,3 +34,9 @@ toInt = floor
 
 both :: (a -> b) -> (a, a) -> (b, b)
 both = join (***)
+
+untilIO :: Int -> IO Bool -> IO a -> IO a
+untilIO d p k = ifM p k (threadDelay d >> untilIO d p k)
+
+equalsM ::(Eq a, Monad m) => m a -> a -> m Bool
+equalsM k a = (== a) <$> k

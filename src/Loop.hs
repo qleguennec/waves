@@ -13,7 +13,7 @@ import Control.Monad (when, void, filterM, forM_)
 import Control.Concurrent (threadDelay)
 import Prelude hiding ((.), id)
 import Flow
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import FRP.Elerea.Simple
 
 import World
@@ -23,10 +23,10 @@ import Bindings
 
 loop :: Network -> Game ()
 loop network@(smp, snk)
-  = unlessM (isStopped)
+  = unlessM isStopped
     <| do
-      io <| threadDelay 10000
-
+      io <| threadDelay 100
+      whenM isDebug debugMode
       conf <- gets wconf
 
       -- process input
@@ -35,12 +35,7 @@ loop network@(smp, snk)
       -- execute actions
       io smp >>= sequence
 
-      -- pause if necessary
-      whenM (isStatus Paused) reLoop
-
-      -- debug
-      io <| putStrLn "Squares alives"
-      gets squares >>= io <. print <. alives
+      whenM isPaused reLoop
 
       -- render Frame
       renderFrame
@@ -62,10 +57,15 @@ isInputOn window (KeyboardS key) =
       _                          -> False
 isInputOn window (MouseS button) =
   getMouseButton window button
-    $>> \case
-      MouseButtonState'Pressed -> True
-      _                                    -> False
-
+    >>= \case
+      MouseButtonState'Pressed -> waitForRelease
+      _                                    -> return False
+  where
+    waitForRelease = untilIO 2
+      (pollEvents >>
+        getMouseButton window button
+        `equalsM` MouseButtonState'Released)
+      <| return True
 
 readInput :: Network -> WConf  -> IO ()
 readInput network@(smp, snk) conf
@@ -87,13 +87,19 @@ readInput network@(smp, snk) conf
     forM_ inputs
       <| \k -> snk <. fromJust
       <| M.lookup k b
-    --
-    -- -- mouse
-    -- buttonsPressed <- filterM (isPressed win . MouseS)
-    --   <| [MouseButton'1]
-    --
-    -- curPos <- getCursorPos win
-    --
-    -- forM_ buttonsPressed
-    --   <| \b -> snk <. fromJust
-    --   <| M.lookup b (mouseBindings conf curPos)
+
+-- debugging utilities
+debugMode :: Game ()
+debugMode = do
+  io <| print "DEBUG MODE - Enter expr"
+  expr <- io <| getLine
+  conf <- gets wconf
+  case expr of
+    "squares" -> gets squares >>= io <. print
+    "wCoord" -> gets (wCoord . wconf) >>= io <. print
+    "BL" -> io <. print <| (get wCoord <| relative BottomLeft conf)
+    "TR" -> io <. print <| (get wCoord <| relative TopRight conf)
+    't':s -> retrieveSquare (read s :: (Int, Int)) >>= updateSquare
+    "exit" -> run
+    "stop" -> stop
+    _ -> return ()

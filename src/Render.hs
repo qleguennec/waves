@@ -18,6 +18,7 @@ renderFrame = do
   glossState <- gets (state . wconf)
   size <- gets (float . squareSize . wconf)
   win <- gets (window . wconf)
+  wcoord <- gets (wCoord . wconf)
   picture <- Pictures
     <$> gets squares
     $>> map (\square ->
@@ -27,7 +28,7 @@ renderFrame = do
         fill square <| Polygon (path c size)
         , border square <| Line (path c size)
       ])
-  io <! displayPicture (640, 480) background glossState 1.0 picture
+  io <! displayPicture wcoord background glossState 1.0 picture
   io <! swapBuffers win
   where
     path (a, b) s = [(a, b), (a+s, b), (a+s, b-s),  (a, b-s)]
@@ -42,7 +43,7 @@ fill square = Color <|
   else empty
   where
     full = makeColorI 255 255 255 255
-    empty = makeColorI 0 0 0 0
+    empty = makeColorI 0 0 0 200
 
 border :: Square -> Picture -> Picture
 border square = Color <|

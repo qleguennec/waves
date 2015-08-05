@@ -2,14 +2,14 @@ module World where
 
 import "GLFW-b" Graphics.UI.GLFW as GLFW (Window)
 import Prelude hiding ((.), id)
-import Control.Monad.State hiding (get, modify, gets)
+import Control.Monad.State.Strict hiding (get, modify, gets)
 import Control.Category
 import Control.Applicative
 import Graphics.Gloss.Rendering as Gloss (State)
 import Data.List (find, delete, insert)
 import Data.Label as L
 import Data.Label.Monadic as St
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import "GLFW-b" Graphics.UI.GLFW as GLFW
 import Flow
 
@@ -33,7 +33,7 @@ data Player = Player {
   _pos :: Int
 } deriving Eq
 
-data RunStatus = Running | Paused | Stopped
+data RunStatus = Running | Paused | Stopped | Debug
   deriving (Eq, Show, Ord)
 
 data World = World {
@@ -83,10 +83,10 @@ coordFloat = point $
       <*> sndL >- (float . y)
 
 -- actions
-getSquareCoord :: (Double, Double) -> Int -> (Int, Int)
-getSquareCoord (a, b) squaresize =
-  ( floor a `div` squaresize
-  , floor b `div` squaresize
+getSquareCoord :: (Double, Double) -> (Int, Int) -> Int -> (Int, Int)
+getSquareCoord (a, b) (w, h) squaresize =
+  (   (floor a - w `div` 2) `div` squaresize
+  , - (floor b - h `div` 2) `div` squaresize
   )
 
 retrieveSquare :: (Int, Int) -> Game (Maybe Square)
@@ -110,6 +110,7 @@ isPaused, isRunning, isStopped :: Game Bool
 isPaused  = isStatus Paused
 isRunning = isStatus Running
 isStopped = isStatus Stopped
+isDebug = isStatus Debug
 
 updateStatus :: RunStatus -> Game ()
 updateStatus s = puts (runStatus . wconf) s
@@ -118,3 +119,4 @@ pause, run, stop :: Game ()
 pause = updateStatus Paused
 run = updateStatus Running
 stop = updateStatus Stopped
+debug = updateStatus Debug

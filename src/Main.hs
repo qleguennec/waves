@@ -1,7 +1,7 @@
 module Main where
 
 import "GLFW-b" Graphics.UI.GLFW as GLFW
-import Control.Monad.State hiding (get, put, modify, state)
+import Control.Monad.State.Strict hiding (get, put, modify, state)
 import Graphics.Gloss.Rendering
 import Graphics.Gloss.Rendering as Gloss (State)
 import Control.Category
@@ -11,7 +11,7 @@ import Control.Monad (when, void)
 import Prelude hiding ((.), id)
 import Flow
 import FRP.Elerea.Simple
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 
 
 import World
@@ -51,9 +51,9 @@ main = do
       _window = undefined
       , _state = undefined
       ,  _bindings = defaultBindings
-      , _runStatus = Paused
-      , _width = 640
-      , _height = 480
+      , _runStatus = Running
+      , _width = 1000
+      , _height = 600
       , _title = "test"
       , _squareSize = 20
     }
@@ -69,8 +69,8 @@ main = do
     squareList :: Int -> [Square]
     squareList size = [
         Square x y False
-        | x <- [0.. w `div` size]
-        , y <- [0.. h `div` size]
+        | x <- [w `div` size .. w' `div` size]
+        , y <- [h `div` size .. h' `div` size]
       ]
 
     initNetwork :: IO Network
