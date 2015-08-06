@@ -25,10 +25,10 @@ defWConf = WConf {
   _window = undefined
   , _state = undefined
   ,  _bindings = defaultBindings
-  , _runStatus = Running
+  , _runStatus = Paused
   , _width = 640
   , _height = 480
-  , _title = "test"
+  , _title = "Conway"
   , _squareSize = 20
 }
 

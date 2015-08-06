@@ -10,7 +10,7 @@ import Data.Label as L hiding (modify)
 import Data.Label.Monadic as St
 import Data.Maybe (fromJust)
 import Control.Monad (filterM, forM_)
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay, forkIO)
 import Prelude hiding ((.), id)
 import Flow
 import qualified Data.Map.Strict as M
@@ -18,6 +18,7 @@ import qualified Data.Map.Strict as M
 import World
 import Render
 import Util
+import Play.Conway
 
 loop :: Network -> Game ()
 loop network@(smp, _)
@@ -30,13 +31,14 @@ loop network@(smp, _)
       -- process input
       io <| readInput network conf
 
-      -- execute actions
+      -- execute input
       io smp >>= sequence_
-
-      whenM isPaused reLoop
 
       -- render Frame
       renderFrame
+
+      -- process new generation unless paused
+      unlessM isPaused conway
 
       -- loop again
       reLoop

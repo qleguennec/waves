@@ -93,6 +93,15 @@ retrieveSquare :: (Int, Int) -> Game (Maybe Square)
 retrieveSquare (a, b) = St.gets squares
   $>> find (\s -> (a == get x s) && (b == get y s))
 
+setAlive :: Bool -> Square -> Game ()
+setAlive l s = do
+  squares =. delete s
+  squares =. (insert <| L.set alive l s)
+
+life, death :: Square -> Game ()
+life = setAlive True
+death = setAlive False
+
 updateSquare :: Maybe Square -> Game ()
 updateSquare Nothing = return ()
 updateSquare (Just s)  = do

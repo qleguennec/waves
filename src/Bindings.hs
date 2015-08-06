@@ -35,7 +35,7 @@ defaultBindings = M.fromList
   ++
   [
     (MouseS MouseButton'1, [
-      (Just Running, squareClick)
+      (Nothing, squareClick)
     ])
   ])
   where
