@@ -10,7 +10,7 @@ name:                waves
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.1.2
+version:             0.2.2.0
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -78,3 +78,54 @@ executable waves
 
   -- Base language which the package is written in.
   default-language:    Haskell2010
+
+benchmark bench-waves
+    type:                 exitcode-stdio-1.0
+
+    hs-source-dirs:   src, bench
+
+    main-is:            Bench.hs
+
+    default-extensions: PackageImports
+                              , LambdaCase
+                              , TemplateHaskell
+                              , BangPatterns
+                              , TypeOperators
+
+    build-depends:    base >=4.8 && <4.9
+                              , GLFW-b >= 1.4
+                              , fclabels >= 2.0
+                              , flow >= 1.0.0
+                              , containers >= 0.4
+                              , mtl >= 2.0
+                              , cond -any
+                              , gloss-rendering >= 1.9
+                              , elerea -any
+                              , criterion
+                              , random
+    default-language:    Haskell2010
+
+Test-Suite test-waves
+      type:                exitcode-stdio-1.0
+
+      hs-source-dirs:  src, test
+
+      main-is:            Test.hs
+
+      build-depends:    base >=4.8 && <4.9
+                                , GLFW-b >= 1.4
+                                , fclabels >= 2.0
+                                , flow >= 1.0.0
+                                , containers >= 0.4
+                                , mtl >= 2.0
+                                , cond -any
+                                , gloss-rendering >= 1.9
+                                , elerea -any
+                                , QuickCheck
+                                , random
+
+      default-extensions: PackageImports
+                                , LambdaCase
+                                , TemplateHaskell
+                                , BangPatterns
+                                , TypeOperators

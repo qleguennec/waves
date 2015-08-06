@@ -9,23 +9,21 @@ import Control.Category
 import Data.Label as L hiding (modify)
 import Data.Label.Monadic as St
 import Data.Maybe (fromJust)
-import Control.Monad (when, void, filterM, forM_)
+import Control.Monad (filterM, forM_)
 import Control.Concurrent (threadDelay)
 import Prelude hiding ((.), id)
 import Flow
 import qualified Data.Map.Strict as M
-import FRP.Elerea.Simple
 
 import World
 import Render
 import Util
-import Bindings
 
 loop :: Network -> Game ()
-loop network@(smp, snk)
+loop network@(smp, _)
   = unlessM isStopped
     <| do
-      io <| threadDelay 100
+      io <| threadDelay 1
       whenM isDebug debugMode
       conf <- gets wconf
 
@@ -33,7 +31,7 @@ loop network@(smp, snk)
       io <| readInput network conf
 
       -- execute actions
-      io smp >>= sequence
+      io smp >>= sequence_
 
       whenM isPaused reLoop
 
@@ -49,26 +47,26 @@ loop network@(smp, snk)
 -- Input computing
 
 isInputOn :: Window -> InputSource -> IO Bool
-isInputOn window (KeyboardS key) =
-  getKey window key
+isInputOn win (KeyboardS key) =
+  getKey win key
     $>> \case
       KeyState'Pressed    -> True
       KeyState'Repeating -> True
       _                          -> False
-isInputOn window (MouseS button) =
-  getMouseButton window button
+isInputOn win (MouseS button) =
+  getMouseButton win button
     >>= \case
       MouseButtonState'Pressed -> waitForRelease
       _                                    -> return False
   where
-    waitForRelease = untilIO 2
+    waitForRelease = untilIO 1
       (pollEvents >>
-        getMouseButton window button
+        getMouseButton win button
         `equalsM` MouseButtonState'Released)
       <| return True
 
 readInput :: Network -> WConf  -> IO ()
-readInput network@(smp, snk) conf
+readInput (_, snk) conf
   = do
     let win = get window conf
     let status = get runStatus conf
@@ -79,8 +77,8 @@ readInput network@(smp, snk) conf
     inputs <- filterM (
       \(i, s) ->
         isInputOn win i
-        $>> (\b -> b && case s of
-          (Just s)  -> (s == status)
+        $>> (\p -> p && case s of
+          (Just s')  -> (s' == status)
           Nothing -> True)
       ) <| M.keys b
 

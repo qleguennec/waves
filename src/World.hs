@@ -99,8 +99,11 @@ updateSquare (Just s)  = do
   squares =. delete s
   squares =. (insert <| L.modify alive not s)
 
+isAlive :: Square -> Bool
+isAlive = get alive
+
 alives :: [Square] -> [Square]
-alives = filter (get alive)
+alives = filter isAlive
 
 -- Run status control
 isStatus :: RunStatus -> Game Bool
