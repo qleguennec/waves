@@ -20,7 +20,7 @@ renderFrame = do
   win <- gets (window . wconf)
   wcoord <- gets (wCoord . wconf)
   picture <- Pictures
-    <$> gets squares
+    <$> readS
     $>> map (\square ->
       let c = get coordFloat square |> both (*size)
       in Pictures

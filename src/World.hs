@@ -11,6 +11,8 @@ import Data.Label as L
 import Data.Label.Monadic as St
 import qualified Data.Map.Strict as M
 import "GLFW-b" Graphics.UI.GLFW as GLFW
+import Control.Concurrent.STM
+import System.Random
 import Flow
 
 import Util
@@ -38,7 +40,7 @@ data RunStatus = Running | Paused | Stopped | Debug
 
 data World = World {
   _wconf :: WConf
-  , _squares :: [Square]
+  , _squares :: TVar [Square]
 }
 
 data WConf = WConf {
@@ -82,7 +84,22 @@ coordFloat = point $
   (,) <$> fstL >- (float . x)
       <*> sndL >- (float . y)
 
--- actions
+-- actions on squares
+readS :: Game [Square]
+readS = St.gets squares
+  >>= (perform <. readTVar)
+
+writeS :: [Square] -> Game ()
+writeS s = St.gets squares
+  >>= (perform <. flip writeTVar s)
+
+alterS :: ([Square] -> [Square]) -> Game ()
+alterS f = St.gets squares
+  >>= (perform <. flip modifyTVar f)
+
+transformS :: (Square -> Square) -> Game ()
+transformS = alterS <. (<$>)
+
 getSquareCoord :: (Double, Double) -> (Int, Int) -> Int -> (Int, Int)
 getSquareCoord (a, b) (w, h) squaresize =
   (   (floor a - w `div` 2) `div` squaresize
@@ -90,23 +107,27 @@ getSquareCoord (a, b) (w, h) squaresize =
   )
 
 retrieveSquare :: (Int, Int) -> Game (Maybe Square)
-retrieveSquare (a, b) = St.gets squares
+retrieveSquare (a, b) = readS
   $>> find (\s -> (a == get x s) && (b == get y s))
 
 setAlive :: Bool -> Square -> Game ()
 setAlive l s = do
-  squares =. delete s
-  squares =. (insert <| L.set alive l s)
+  alterS <| delete s
+  alterS <| (insert <| L.set alive l s)
 
 life, death :: Square -> Game ()
 life = setAlive True
 death = setAlive False
 
-updateSquare :: Maybe Square -> Game ()
-updateSquare Nothing = return ()
-updateSquare (Just s)  = do
-  squares =. delete s
-  squares =. (insert <| L.modify alive not s)
+updateSquare :: Square -> Game ()
+updateSquare s  = do
+  alterS <| delete s
+  alterS <| (insert <| L.modify alive not s)
+
+randomize :: Game ()
+randomize = do
+  gen <- io newStdGen
+  transformS <| L.set alive (fst <| random gen)
 
 isAlive :: Square -> Bool
 isAlive = get alive

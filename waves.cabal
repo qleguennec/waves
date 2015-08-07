@@ -10,7 +10,7 @@ name:                waves
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:            1.0.1.0
+version:            1.1.10
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -76,6 +76,8 @@ executable waves
                             , cond -any
                             , gloss-rendering >= 1.9
                             , elerea -any
+                            , stm
+                            , random
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -107,6 +109,7 @@ benchmark bench-waves
                               , elerea -any
                               , criterion
                               , random
+                              , stm
     default-language:    Haskell2010
 
 Test-Suite test-waves
@@ -127,6 +130,7 @@ Test-Suite test-waves
                                 , elerea -any
                                 , QuickCheck
                                 , random
+                                , stm
 
       default-extensions: PackageImports
                                 , LambdaCase

@@ -12,6 +12,7 @@ import Control.Category
 import World
 import Util
 import Boot
+import Play.Conway
 
 instance (Random x, Random y) => Random (x, y) where
   random = undefined
@@ -28,16 +29,21 @@ main = defaultMainWith
   }
 
   [
-    bench "Squares updates" $ whnfIO $ execGame
-      $ do
-        gen <- io getStdGen
-        (w, h) <- St.gets (wCoord . wconf)
-          $>> both (\a -> fromIntegral a :: Double)
+    bench "Squares updates" $ whnfIO
+      $ execGame (initialWorld defWConf)
+        $ do
+          gen <- io getStdGen
+          (w, h) <- St.gets (wCoord . wconf)
+            $>> both (\a -> fromIntegral a :: Double)
 
-        forM_ (take 1000 $ randomRs ((0, w), (0, h)) gen)
-          $ \c -> do
-            size <- St.gets (squareSize . wconf)
-            (w, h) <- St.gets (wCoord . wconf)
-            retrieveSquare (getSquareCoord c (w, h) size)
-            >>= updateSquare
+          forM_ (take 1000 $ randomRs ((0, w), (0, h)) gen)
+            $ \c -> do
+              size <- St.gets (squareSize . wconf)
+              (w, h) <- St.gets (wCoord . wconf)
+              retrieveSquare (getSquareCoord c (w, h) size)
+              >>= updateSquare
+
+      , bench "Conway - 20 gens" $ whnfIO
+        $ execGame (initialWorld defWConf)
+          $ randomize >> replicateM_ 20 conway
   ]

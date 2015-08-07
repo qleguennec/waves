@@ -11,7 +11,7 @@ import World
 import Util
 
 conway :: Game ()
-conway = gets squares >>= mapM_
+conway = readS >>= mapM_
   (\s -> (length <$> neighboursAlive s) >>= \case
       3 -> life s
       2 -> return ()

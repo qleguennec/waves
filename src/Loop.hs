@@ -24,7 +24,7 @@ loop :: Network -> Game ()
 loop network@(smp, _)
   = unlessM isStopped
     <| do
-      io <| threadDelay 1
+      io <| threadDelay 10000
       whenM isDebug debugMode
       conf <- gets wconf
 
@@ -95,11 +95,13 @@ debugMode = do
   expr <- io <| getLine
   conf <- gets wconf
   case expr of
-    "squares" -> gets squares >>= io <. print
+    "squares" -> readS >>= io <. print
     "wCoord" -> gets (wCoord . wconf) >>= io <. print
     "BL" -> io <. print <| (get wCoord <| relative BottomLeft conf)
     "TR" -> io <. print <| (get wCoord <| relative TopRight conf)
-    't':s -> retrieveSquare (read s :: (Int, Int)) >>= updateSquare
+    't':s -> retrieveSquare (read s :: (Int, Int)) >>= \case
+      Nothing -> return ()
+      (Just s) -> updateSquare s
     "exit" -> run
     "stop" -> stop
     _ -> return ()

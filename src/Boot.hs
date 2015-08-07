@@ -12,7 +12,8 @@ import Data.Label
 import Prelude hiding ((.), id)
 import Flow
 import FRP.Elerea.Simple
-
+import Control.Concurrent.STM
+import System.IO.Unsafe
 
 import World
 import Render
@@ -38,7 +39,8 @@ initialWorld conf =
   let s = get squareSize conf
   in World {
     _wconf = conf
-    , _squares = squareList s
+    , _squares =
+      unsafePerformIO <. newTVarIO <| squareList s
   }
 
 squareList :: Int -> [Square]

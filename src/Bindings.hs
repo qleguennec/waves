@@ -31,6 +31,10 @@ defaultBindings = M.fromList
     , (KeyboardS Key'Pad0, [
       (Nothing, debug)
     ])
+
+    , (KeyboardS Key'R, [
+      (Just Paused, randomize)
+    ])
   ]
   ++
   [
@@ -46,7 +50,9 @@ defaultBindings = M.fromList
       curPos <- (io <. getCursorPos) win
       squaresize <- gets (squareSize . wconf)
       let c = getSquareCoord curPos winSize squaresize
-      retrieveSquare c >>= updateSquare
+      retrieveSquare c >>= \case
+        (Just s) -> updateSquare s
+        Nothing -> return ()
 
 
 merge :: [(a, [(b, c)])] -> [((a, b), c)]

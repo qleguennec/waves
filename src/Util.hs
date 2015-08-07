@@ -5,6 +5,7 @@ import           Control.Arrow       ((***))
 import           Control.Monad       (join)
 import Control.Monad.State.Strict (MonadIO, liftIO)
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.STM
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM a f g = do
@@ -22,6 +23,9 @@ unlessM = whenM . notM
 
 io :: MonadIO m => IO a -> m a
 io = liftIO
+
+perform :: MonadIO m => STM a -> m a
+perform = io . atomically
 
 ($>>) :: Functor f => f a -> (a -> b) -> f b
 ($>>) = flip (<$>)
