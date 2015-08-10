@@ -8,6 +8,8 @@ import Control.Applicative
 import Graphics.Gloss.Rendering as Gloss (State)
 import Data.List (find, delete, insert)
 import Data.Label as L
+import qualified Data.Foldable as F
+import qualified Data.Set as S
 import Data.Label.Monadic as St
 import qualified Data.Map.Strict as M
 import "GLFW-b" Graphics.UI.GLFW as GLFW
@@ -38,9 +40,11 @@ data Player = Player {
 data RunStatus = Running | Paused | Stopped | Debug
   deriving (Eq, Show, Ord)
 
+type Squares = S.Set Square
+
 data World = World {
   _wconf :: WConf
-  , _squares :: TVar [Square]
+  , _squares :: TVar Squares
 }
 
 data WConf = WConf {
@@ -85,20 +89,23 @@ coordFloat = point $
       <*> sndL >- (float . y)
 
 -- actions on squares
-readS :: Game [Square]
+readS :: Game Squares
 readS = St.gets squares
   >>= (perform <. readTVar)
 
-writeS :: [Square] -> Game ()
+writeS :: Squares -> Game ()
 writeS s = St.gets squares
   >>= (perform <. flip writeTVar s)
 
-alterS :: ([Square] -> [Square]) -> Game ()
+alterS :: (Squares -> Squares) -> Game ()
 alterS f = St.gets squares
   >>= (perform <. flip modifyTVar f)
 
-transformS :: (Square -> Square) -> Game ()
-transformS = alterS <. (<$>)
+transformS :: (Square -> Game ()) -> Game ()
+transformS = (readS >>=) <. F.mapM_
+
+mapS :: (Square -> a) -> Game [a]
+mapS f = (map f <. F.toList) <$> readS
 
 getSquareCoord :: (Double, Double) -> (Int, Int) -> Int -> (Int, Int)
 getSquareCoord (a, b) (w, h) squaresize =
@@ -112,8 +119,8 @@ retrieveSquare (a, b) = readS
 
 setAlive :: Bool -> Square -> Game ()
 setAlive l s = do
-  alterS <| delete s
-  alterS <| (insert <| L.set alive l s)
+  alterS <| S.delete s
+  alterS <| (S.insert <| L.set alive l s)
 
 life, death :: Square -> Game ()
 life = setAlive True
@@ -121,19 +128,19 @@ death = setAlive False
 
 updateSquare :: Square -> Game ()
 updateSquare s  = do
-  alterS <| delete s
-  alterS <| (insert <| L.modify alive not s)
+  alterS <| S.delete s
+  alterS <| (S.insert <| L.modify alive not s)
 
 randomize :: Game ()
 randomize = do
   gen <- io newStdGen
-  transformS <| L.set alive (fst <| random gen)
+  transformS <| setAlive (fst <| random gen)
 
 isAlive :: Square -> Bool
 isAlive = get alive
 
-alives :: [Square] -> [Square]
-alives = filter isAlive
+alives :: Squares -> Squares
+alives = S.filter isAlive
 
 -- Run status control
 isStatus :: RunStatus -> Game Bool

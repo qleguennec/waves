@@ -9,6 +9,7 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import Control.Monad.State.Strict hiding (get, put, modify, state)
 import Graphics.Gloss.Rendering as Gloss (initState)
 import Data.Label
+import qualified Data.Set as S
 import Prelude hiding ((.), id)
 import Flow
 import FRP.Elerea.Simple
@@ -43,8 +44,8 @@ initialWorld conf =
       unsafePerformIO <. newTVarIO <| squareList s
   }
 
-squareList :: Int -> [Square]
-squareList size = [
+squareList :: Int -> Squares
+squareList size = S.fromList [
     Square x' y' False
     | x' <- [w `div` size .. w' `div` size]
     , y' <- [h `div` size .. h' `div` size]

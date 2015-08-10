@@ -8,6 +8,7 @@ import "GLFW-b" Graphics.UI.GLFW as GLFW
 import Graphics.Gloss.Rendering
 import Data.Label
 import Data.Label.Monadic
+import qualified Data.Foldable as F
 import Flow
 
 import World
@@ -20,8 +21,7 @@ renderFrame = do
   win <- gets (window . wconf)
   wcoord <- gets (wCoord . wconf)
   picture <- Pictures
-    <$> readS
-    $>> map (\square ->
+    <$> mapS (\square ->
       let c = get coordFloat square |> both (*size)
       in Pictures
       [

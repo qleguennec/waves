@@ -41,7 +41,10 @@ main = defaultMainWith
               size <- St.gets (squareSize . wconf)
               (w, h) <- St.gets (wCoord . wconf)
               retrieveSquare (getSquareCoord c (w, h) size)
-              >>= updateSquare
+              >>=
+                \case
+                  Nothing -> return ()
+                  (Just s) -> updateSquare s
 
       , bench "Conway - 20 gens" $ whnfIO
         $ execGame (initialWorld defWConf)
